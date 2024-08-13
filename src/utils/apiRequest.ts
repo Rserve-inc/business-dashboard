@@ -56,14 +56,15 @@ export async function logout() {
 }
 
 
-export async function requestBackend(path: string, method: "GET" | "POST" | "PUT" | "DELETE", body: any = null) {
+export async function requestBackend(path: string, method: "GET" | "POST" | "PUT" | "DELETE", body: unknown = null) {
     return await axios.get(`/api/restaurant/${path}`,
         {
             withCredentials: true,
             method: method,
             headers: {
                 "Content-Type": "application/json"
-            }
+            },
+            data: body
         })
 }
 
