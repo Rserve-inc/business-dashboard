@@ -1,8 +1,8 @@
 import React, {useEffect, useState} from 'react';
-import {Button, Card, Col, Flex, Layout, Menu, Row, Table, theme} from 'antd';
-import {UploadOutlined, UserOutlined, PlusOutlined, MinusOutlined} from '@ant-design/icons';
+import {Button, Card, Col, Flex, Layout, List, Menu, Row, Table, theme} from 'antd';
+import {MinusOutlined, PlusOutlined, UploadOutlined, UserOutlined} from '@ant-design/icons';
 import './App.css';
-import {ReservationItem, TableItem} from "./types.ts";
+import {ReservationItem, ReservationTablesItem, TableItem} from "./types.ts";
 import {getReservations, getTables} from "./utils/apiRequest.ts";
 
 const {Content, Sider} = Layout;
@@ -44,12 +44,12 @@ const DashboardComponentContainer = ({children}) => (
 )
 
 
-const DashboardComponent = ({title, children}) => {
+const DashboardComponent = ({title, children, span}) => {
     const {
         token: {colorBgContainer, borderRadiusLG},
     } = theme.useToken();
     return (
-        <Col span={12}>
+        <Col span={span}>
             <Card title={title} style={{width: "96%", backgroundColor: colorBgContainer, borderRadius: borderRadiusLG}}>
                 {children}
             </Card>
@@ -60,14 +60,24 @@ const DashboardComponent = ({title, children}) => {
 
 const LeftPain = () => {
     const [apiData, setApiData] = useState<ReservationItem[]>([]);
+    const [dataLoaded, setDataLoaded] = useState(false);
     useEffect(() => {
-        getReservations().then(setApiData)
+        getReservations().then(setApiData).finally(() => setDataLoaded(true))
     }, [])
     const columns = [
         {
             title: '予約時間',
-            dataIndex: 'timeStr',
+            dataIndex: 'time',
             key: 'time',
+            // todo: 日を跨ぐ場合は日付も表示
+            render: (time: Date) => {
+                const timeString =
+                    time.getDate() == new Date().getDate() ?
+                        time.toLocaleTimeString(["ja"], {timeStyle: "short"})
+                        :
+                        time.toLocaleDateString(["ja"], {dateStyle: "short"}) + " " + time.toLocaleTimeString(["ja"], {timeStyle: "short"})
+                return <p>{timeString}</p>
+            }
         },
         {
             title: 'お名前',
@@ -75,19 +85,32 @@ const LeftPain = () => {
             key: 'name',
         },
         {
-            title: 'テーブル種類',
-            dataIndex: 'tableName',
-            key: 'tableName',
+            title: 'テーブル',
+            dataIndex: 'tables',
+            key: 'tables',
+            render: (tables: ReservationTablesItem[]) => (
+                <List
+                    size="small"
+                    bordered
+                    dataSource={tables}
+                    renderItem={(item) => (
+                        <List.Item>
+                            {item.tableType.name} {item.tableCount}席
+                        </List.Item>
+                    )}
+                />
+            )
         },
         {
-            title: 'テーブル数',
-            dataIndex: 'number',
-            key: 'number',
+            title: '人数',
+            dataIndex: 'peopleCount',
+            key: 'peopleCount',
+            render: (peopleCount: number) => <p>{peopleCount}名</p>
         },
     ];
     return (
-        <DashboardComponent title={"あと10分 4人"}>
-            <Table dataSource={apiData} columns={columns}/>
+        <DashboardComponent title={"あと10分 4人"} span={15}>
+            {dataLoaded ? <Table dataSource={apiData} columns={columns}/> : <p>データを読み込んでいます...</p>}
         </DashboardComponent>
     )
 }
@@ -129,7 +152,7 @@ const RightPain = () => {
     const incrementNumber = (id: string) => changeNumber(id, 1)
     const decrementNumber = (id: string) => changeNumber(id, -1)
     return (
-        <DashboardComponent title={"空席"}>
+        <DashboardComponent title={"空席"} span={9}>
             {tables.map((table) => (
                 <TableCounter
                     tableName={table.tableName}

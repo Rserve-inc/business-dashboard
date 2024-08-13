@@ -4,25 +4,28 @@ export interface TableItem {
     number: number
 }
 
-export interface ReservationItem {
-    id: string;
-    userID: string;
-    restaurantID: string;
-    time: Date;
-    tableType: string;
-    number: number; // テーブル数
-    status: 'pending' | 'canceled' | 'done';
+export interface FirebaseTableType {
+    lastUpdated: Date
+    name: string
+    // todo: 複数形に統一 (seats)
+    numOfSeat: number
+    vacancy: number
 }
 
-export interface ReservationDisplayItem {
-    id: string;
-    userID: string;
-    userName: string;
-    restaurantID: string;
-    time: Date;
-    timeStr: string;
-    tableType: string;
-    tableName: string;
-    number: number;
-    status: 'pending' | 'canceled' | 'done';
+export interface ReservationTablesItem {
+    tableType: FirebaseTableType
+    tableCount: number
+}
+
+
+export interface ReservationItem {
+    id: string;         //予約ID
+    userName: string;  //予約を行ったユーザー名
+    // todo: レストランオブジェクトを定義する
+    restaurant?: object; //レストランオブジェクト (未定義)
+    time: Date;         //予約日時
+    tables: ReservationTablesItem[]; // 予約テーブル
+    peopleCount: number; // 人数
+    // todo: 予約ステータスをenumにする
+    status: string
 }

@@ -1,4 +1,4 @@
-import {ReservationDisplayItem, TableItem} from "../types.ts";
+import {ReservationItem, TableItem} from "../types.ts";
 import axios from "axios";
 
 const refreshAccessToken = async () => {
@@ -73,29 +73,14 @@ export async function getTables(): Promise<TableItem[]> {
     // return tables.data["tables"]
 }
 
-export async function getReservations(): Promise<ReservationDisplayItem[]> {
-    async function getUserName(userID: string): Promise<string> {
-        return "山田太郎"
-    }
-
-    async function getTableName(tableType: string): Promise<string> {
-        return "1人カウンター"
-    }
-
-    const apiRes = [{
-        id: "123abc",
-        userID: "123abc",
-        restaurantID: "123abc",
-        time: new Date(),
-        tableType: "123abc",
-        number: 1,
-        status: "pending"
-    }]
-    return apiRes.map(res => {
-        getUserName(res.userID).then(userName => res["userName"] = userName)
-        getTableName(res.tableType).then(tableName => res["tableName"] = tableName)
-        // string format: "23:59"
-        res["timeStr"] = res.time.getDate() === new Date().getDate() ? res.time.toLocaleTimeString("ja", {timeStyle: "short"}) : res.time.toLocaleDateString()
-        return res as ReservationDisplayItem
-    })
+export async function getReservations(): Promise<ReservationItem[]> {
+    const apiRes = await requestBackend("reservations", "GET")
+    // リスト内の各要素のtimeフィールドをDate型に変換
+    const reservationsWithDate = apiRes.data["reservations"].map((item: ReservationItem) => {
+        return {
+            ...item,
+            time: new Date(item.time)  // timeフィールドをDate型に変換
+        };
+    });
+    return reservationsWithDate as ReservationItem[]
 }
