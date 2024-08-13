@@ -2,8 +2,8 @@ import React, {useEffect, useState} from 'react';
 import {Button, Card, Col, Flex, Layout, List, Menu, Modal, Row, Table, theme} from 'antd';
 import {MinusOutlined, PlusOutlined, UploadOutlined, UserOutlined} from '@ant-design/icons';
 import './App.css';
-import {ReservationItem, ReservationTablesItem, TableItem} from "./types.ts";
-import {getReservations, getTables} from "./utils/apiRequest.ts";
+import {FirebaseTableType, ReservationItem, ReservationTablesItem} from "./types.ts";
+import {getReservations, getTables, requestBackend} from "./utils/apiRequest.ts";
 
 const {Content, Sider} = Layout;
 
@@ -142,15 +142,19 @@ const LeftPain = () => {
     )
 }
 
-const TableCounter = ({tableName, number, incrementNumber, decrementNumber}) => (
+const TableCounter = ({table, incrementNumber, decrementNumber}: {
+    table: FirebaseTableType,
+    incrementNumber: (id: string) => void,
+    decrementNumber: (id: string) => void
+}) => (
     <Flex style={{alignItems: "center", width: "100%", justifyContent: "space-between"}}>
-        <p style={{fontSize: "medium", marginRight: "1rem", fontWeight: "bold"}}>{tableName}</p>
+        <p style={{fontSize: "medium", marginRight: "1rem", fontWeight: "bold"}}>{table.name}</p>
         <Flex style={{alignItems: "center"}}>
-            <Button onClick={decrementNumber}>
+            <Button onClick={() => decrementNumber(table.id)}>
                 <MinusOutlined/>
             </Button>
-            <p style={{fontSize: 27, marginRight: 12, marginLeft: 12}}>{number}</p>
-            <Button onClick={incrementNumber}>
+            <p style={{fontSize: 27, marginRight: 12, marginLeft: 12}}>{table.vacancy}</p>
+            <Button onClick={() => incrementNumber(table.id)}>
                 <PlusOutlined/>
             </Button>
         </Flex>
@@ -158,7 +162,7 @@ const TableCounter = ({tableName, number, incrementNumber, decrementNumber}) => 
 )
 
 const RightPain = () => {
-    const [tables, setTables] = useState<TableItem[]>([]);
+    const [tables, setTables] = useState<FirebaseTableType[]>([]);
     useEffect(() => {
         getTables().then(setTables)
     }, [])
@@ -166,26 +170,28 @@ const RightPain = () => {
     function changeNumber(id: string, diff: number) {
         setTables(prevTables =>
             prevTables.map(table => {
-                    if (table.id === id && table.number + diff >= 0) {
-
-                        return {...table, number: table.number + diff}
-                    } else
-                        return table
-                }
-            )
+                if (table.id === id && table.vacancy + diff >= 0) {
+                    return {...table, vacancy: table.vacancy + diff} as FirebaseTableType
+                } else
+                    return table
+            })
         );
     }
 
-    const incrementNumber = (id: string) => changeNumber(id, 1)
-    const decrementNumber = (id: string) => changeNumber(id, -1)
+    const incrementNumber = (id: string) => {
+        requestBackend(`/tables/${id}/vacancy/increment`, "POST").then(() => changeNumber(id, 1));
+    }
+    const decrementNumber = (id: string) => {
+
+        requestBackend(`/tables/${id}/vacancy/decrement`, "POST").then(() => changeNumber(id, -1));
+    }
     return (
         <DashboardComponent title={"空席"} span={9}>
             {tables.map((table) => (
                 <TableCounter
-                    tableName={table.tableName}
-                    number={table.number}
-                    incrementNumber={() => incrementNumber(table.id)}
-                    decrementNumber={() => decrementNumber(table.id)}
+                    table={table}
+                    incrementNumber={incrementNumber}
+                    decrementNumber={decrementNumber}
                 />
             ))}
         </DashboardComponent>

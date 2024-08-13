@@ -1,10 +1,5 @@
-export interface TableItem {
-    id: string
-    tableName: string
-    number: number
-}
-
 export interface FirebaseTableType {
+    id?: string
     lastUpdated: Date
     name: string
     // todo: 複数形に統一 (seats)

@@ -1,5 +1,5 @@
-import {ReservationItem, TableItem} from "../types.ts";
-import axios from "axios";
+import {FirebaseTableType, ReservationItem} from "../types.ts";
+import axios, {Method} from "axios";
 
 const refreshAccessToken = async () => {
     try {
@@ -56,26 +56,26 @@ export async function logout() {
 }
 
 
-export async function requestBackend(path: string, method: "GET" | "POST" | "PUT" | "DELETE", body: unknown = null) {
-    return await axios.get(`/api/restaurant/${path}`,
-        {
-            withCredentials: true,
-            method: method,
-            headers: {
-                "Content-Type": "application/json"
-            },
-            data: body
-        })
+export async function requestBackend(path: string, method: Method, body: unknown = null) {
+    return axios.request({
+        url: `/api/restaurant${path}`,
+        method: method,
+        withCredentials: true,
+        headers: {
+            "Content-Type": "application/json"
+        },
+        data: body
+    });
 }
 
-export async function getTables(): Promise<TableItem[]> {
-    return [{id: "123abc", tableName: "1人カウンター", number: 0}, {id: "234bcd", tableName: "4人テーブル", number: 0}]
-    // const tables = await requestBackend("tables", "GET")
-    // return tables.data["tables"]
+
+export async function getTables(): Promise<FirebaseTableType[]> {
+    const res = await requestBackend("/tables", "GET")
+    return res.data["tables"] as FirebaseTableType[]
 }
 
 export async function getReservations(): Promise<ReservationItem[]> {
-    const apiRes = await requestBackend("reservations", "GET")
+    const apiRes = await requestBackend("/reservations", "GET")
     // リスト内の各要素のtimeフィールドをDate型に変換
     const reservationsWithDate = apiRes.data["reservations"].map((item: ReservationItem) => {
         return {
