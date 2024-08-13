@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {Button, Card, Col, Flex, Layout, List, Menu, Row, Table, theme} from 'antd';
+import {Button, Card, Col, Flex, Layout, List, Menu, Modal, Row, Table, theme} from 'antd';
 import {MinusOutlined, PlusOutlined, UploadOutlined, UserOutlined} from '@ant-design/icons';
 import './App.css';
 import {ReservationItem, ReservationTablesItem, TableItem} from "./types.ts";
@@ -63,6 +63,33 @@ const LeftPain = () => {
     const [dataLoaded, setDataLoaded] = useState(false);
     useEffect(() => {
         getReservations().then(setApiData).finally(() => setDataLoaded(true))
+        const eventSource = new EventSource('/api/restaurant/reservations/updates');
+
+        eventSource.onmessage = async function () {
+            // サーバーから通知が来たらデータを再取得
+            const newData = await getReservations();
+            setApiData(newData);
+        };
+
+        eventSource.onerror = function () {
+            // 接続が切れたとき
+            eventSource.close();
+            Modal.error({
+                title: '接続が切断されました',
+                content: 'ページをリロードしてください',
+                onOk: () => {
+                    window.location.reload();
+                },
+                okText: 'OK',
+                onCancel: () => {
+                    window.location.reload();
+                }
+            });
+        };
+
+        return () => {
+            eventSource.close();
+        };
     }, [])
     const columns = [
         {
