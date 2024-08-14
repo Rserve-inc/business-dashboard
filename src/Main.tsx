@@ -58,39 +58,12 @@ const DashboardComponent = ({title, children, span}) => {
 }
 
 
-const LeftPain = () => {
+const LeftPain = ({isSSEConnected}) => {
     const [apiData, setApiData] = useState<ReservationItem[]>([]);
     const [dataLoaded, setDataLoaded] = useState(false);
     useEffect(() => {
         getReservations().then(setApiData).finally(() => setDataLoaded(true))
-        const eventSource = new EventSource('/api/restaurant/reservations/updates');
-
-        eventSource.onmessage = async function () {
-            // サーバーから通知が来たらデータを再取得
-            const newData = await getReservations();
-            setApiData(newData);
-        };
-
-        eventSource.onerror = function () {
-            // 接続が切れたとき
-            eventSource.close();
-            Modal.error({
-                title: '接続が切断されました',
-                content: 'ページをリロードしてください',
-                onOk: () => {
-                    window.location.reload();
-                },
-                okText: 'OK',
-                onCancel: () => {
-                    window.location.reload();
-                }
-            });
-        };
-
-        return () => {
-            eventSource.close();
-        };
-    }, [])
+    }, [isSSEConnected])
     const columns = [
         {
             title: '予約時間',
@@ -161,11 +134,11 @@ const TableCounter = ({table, incrementNumber, decrementNumber}: {
     </Flex>
 )
 
-const RightPain = () => {
+const RightPain = ({isSSEConnected}) => {
     const [tables, setTables] = useState<FirebaseTableType[]>([]);
     useEffect(() => {
         getTables().then(setTables)
-    }, [])
+    }, [isSSEConnected])
 
     function changeNumber(id: string, diff: number) {
         setTables(prevTables =>
@@ -179,11 +152,18 @@ const RightPain = () => {
     }
 
     const incrementNumber = (id: string) => {
-        requestBackend(`/tables/${id}/vacancy/increment`, "POST").then(() => changeNumber(id, 1));
+        changeNumber(id, 1);
+        requestBackend(`/tables/${id}/vacancy/increment`, "POST").catch(() => {
+            changeNumber(id, -1)
+            alert("通信に失敗しました")
+        });
     }
     const decrementNumber = (id: string) => {
-
-        requestBackend(`/tables/${id}/vacancy/decrement`, "POST").then(() => changeNumber(id, -1));
+        changeNumber(id, -1)
+        requestBackend(`/tables/${id}/vacancy/decrement`, "POST").catch(() => {
+            changeNumber(id, 1)
+            alert("通信に失敗しました")
+        })
     }
     return (
         <DashboardComponent title={"空席"} span={9}>
@@ -200,14 +180,42 @@ const RightPain = () => {
 
 
 function Screen() {
+    const [isSSEConnected, setIsSSEConnected] = useState(false);
+    useEffect(() => {
+        const eventSource = new EventSource('/api/restaurant/reservations/updates');
+
+        eventSource.onmessage = async function () {
+            setIsSSEConnected(true);
+        };
+
+        eventSource.onerror = function () {
+            // 接続が切れたとき
+            eventSource.close();
+            Modal.error({
+                title: '接続が切断されました',
+                content: 'ページをリロードしてください',
+                onOk: () => {
+                    window.location.reload();
+                },
+                okText: 'OK',
+                onCancel: () => {
+                    window.location.reload();
+                }
+            });
+        };
+
+        return () => {
+            eventSource.close();
+        };
+    }, []);
     return (
         <Layout style={{width: "100vw", height: "100vh"}} hasSider={true}>
             <Sidebar/>
             <Layout>
                 <Content style={{margin: '24px 16px 0'}}>
                     <DashboardComponentContainer>
-                        <LeftPain key={"left"}/>
-                        <RightPain key={"right"}/>
+                        <LeftPain key={"left"} isSSEConnected={isSSEConnected}/>
+                        <RightPain key={"right"} isSSEConnected={isSSEConnected}/>
                     </DashboardComponentContainer>
                 </Content>
             </Layout>
