@@ -17,6 +17,9 @@ axios.interceptors.response.use(
         const originalRequest = error.config;
         if (error.response.status >= 400 && 500 > error.response.status && !originalRequest._retry) {
             originalRequest._retry = true;
+            if (originalRequest.url === "/api/refresh") {
+                return Promise.reject(error);
+            }
             await refreshAccessToken();
             return axios(originalRequest);
         }
