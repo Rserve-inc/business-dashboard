@@ -28,9 +28,14 @@ axios.interceptors.response.use(
 );
 
 export async function checkIsLoggedIn() {
-    const res = await axios.get("/api/check-token", {withCredentials: true})
-    console.log(res)
-    return res.status === 200
+    try {
+        const res = await axios.get("/api/check-token", {withCredentials: true});
+        return res.status === 200
+    } catch (error) {
+        if (error.response.status === 401 || error.response.status === 403) {
+            return false
+        } else throw error
+    }
 }
 
 export async function login(restaurant_id: string, role: string, password: string) {
