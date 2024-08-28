@@ -58,12 +58,12 @@ const DashboardComponent = ({title, children, span}) => {
 }
 
 
-const LeftPain = ({isSSEConnected}) => {
+const LeftPain = ({changedAt}) => {
     const [apiData, setApiData] = useState<ReservationItem[]>([]);
     const [dataLoaded, setDataLoaded] = useState(false);
     useEffect(() => {
         getReservations().then(setApiData).finally(() => setDataLoaded(true))
-    }, [isSSEConnected])
+    }, [changedAt])
     const columns = [
         {
             title: '予約時間',
@@ -134,11 +134,11 @@ const TableCounter = ({table, incrementNumber, decrementNumber}: {
     </Flex>
 )
 
-const RightPain = ({isSSEConnected}) => {
+const RightPain = ({changedAt}) => {
     const [tables, setTables] = useState<FirebaseTableType[]>([]);
     useEffect(() => {
         getTables().then(setTables)
-    }, [isSSEConnected])
+    }, [changedAt])
 
     function changeNumber(id: string, diff: number) {
         setTables(prevTables =>
@@ -180,14 +180,19 @@ const RightPain = ({isSSEConnected}) => {
 
 
 function Screen() {
-    const [isSSEConnected, setIsSSEConnected] = useState(false);
+    const [dataChangedAt, setDataChangedAt] = useState(new Date());
     const [retryCount, setRetryCount] = useState(0);
-    const MAX_RETRY_COUNT = 4;
+    const MAX_RETRY_COUNT = 2;
     useEffect(() => {
         const eventSource = new EventSource('/api/restaurant/reservations/updates');
 
+        eventSource.onopen = function () {
+            setDataChangedAt(new Date())
+            setRetryCount(0)
+        }
+
         eventSource.onmessage = async function () {
-            setIsSSEConnected(true);
+            setDataChangedAt(new Date())
         };
 
         eventSource.onerror = function () {
@@ -221,8 +226,8 @@ function Screen() {
             <Layout>
                 <Content style={{margin: '24px 16px 0'}}>
                     <DashboardComponentContainer>
-                        <LeftPain key={"left"} isSSEConnected={isSSEConnected}/>
-                        <RightPain key={"right"} isSSEConnected={isSSEConnected}/>
+                        <LeftPain key={"left"} changedAt={dataChangedAt}/>
+                        <RightPain key={"right"} changedAt={dataChangedAt}/>
                     </DashboardComponentContainer>
                 </Content>
             </Layout>
