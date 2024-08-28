@@ -181,6 +181,8 @@ const RightPain = ({isSSEConnected}) => {
 
 function Screen() {
     const [isSSEConnected, setIsSSEConnected] = useState(false);
+    const [retryCount, setRetryCount] = useState(0);
+    const MAX_RETRY_COUNT = 4;
     useEffect(() => {
         const eventSource = new EventSource('/api/restaurant/reservations/updates');
 
@@ -191,23 +193,28 @@ function Screen() {
         eventSource.onerror = function () {
             // 接続が切れたとき
             eventSource.close();
-            Modal.error({
-                title: '接続が切断されました',
-                content: 'ページをリロードしてください',
-                onOk: () => {
-                    window.location.reload();
-                },
-                okText: 'OK',
-                onCancel: () => {
-                    window.location.reload();
-                }
-            });
+            if (retryCount < MAX_RETRY_COUNT) {
+                console.log("retrying SSE connection...");
+                setRetryCount(retryCount + 1);
+            } else {
+                Modal.error({
+                    title: '接続が切断されました',
+                    content: 'ページをリロードしてください',
+                    onOk: () => {
+                        window.location.reload();
+                    },
+                    okText: 'OK',
+                    onCancel: () => {
+                        window.location.reload();
+                    }
+                })
+            }
         };
 
         return () => {
             eventSource.close();
         };
-    }, []);
+    }, [retryCount]);
     return (
         <Layout style={{width: "100vw", height: "100vh"}} hasSider={true}>
             <Sidebar/>
